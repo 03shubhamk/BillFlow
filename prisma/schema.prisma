@@ -1,0 +1,95 @@
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id              String           @id @default(uuid())
+  email           String           @unique
+  passwordHash    String
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  subscription    Subscription?
+  invoices        Invoice[]
+  paymentAttempts PaymentAttempt[]
+  payments        Payment[]
+}
+
+model Subscription {
+  id                 String    @id @default(uuid())
+  userId             String    @unique
+  user               User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  planId             String    // basic, pro, enterprise
+  status             String    // active, cancelled, expired, pending
+  price              Float     // price per month/year
+  currentPeriodStart DateTime
+  currentPeriodEnd   DateTime
+  cancelAtPeriodEnd  Boolean   @default(false)
+  pendingDowngradePlanId String?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+  invoices           Invoice[]
+  payments           Payment[]
+}
+
+model Invoice {
+  id             String       @id @default(uuid())
+  invoiceNumber  String       @unique // e.g. INV-2026-0001
+  userId         String
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subscriptionId String
+  subscription   Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+  amount         Float
+  status         String       // paid, unpaid, failed
+  billingDate    DateTime     @default(now())
+  createdAt      DateTime     @default(now())
+  payment        Payment?
+}
+
+model PaymentAttempt {
+  id                String   @id @default(uuid())
+  userId            String
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  planId            String
+  amount            Float
+  status            String   // successful, pending, failed
+  provider          String   // stripe, mock
+  providerPaymentId String?  @unique
+  createdAt         DateTime @default(now())
+}
+
+model Payment {
+  id                String       @id @default(uuid())
+  userId            String
+  user              User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subscriptionId    String?
+  subscription      Subscription? @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+  invoiceId         String?      @unique
+  invoice           Invoice?     @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  amount            Float
+  status            String       // successful, pending, failed
+  provider          String       // stripe, mock
+  providerPaymentId String       @unique
+  createdAt         DateTime     @default(now())
+}
+
+model WebhookEvent {
+  id          String   @id // unique event ID from provider (e.g. evt_123 or mock_evt_123)
+  status      String   // processing, processed, failed
+  error       String?
+  userId      String?
+  processedAt DateTime @default(now())
+}
+
+model EmailLog {
+  id        String   @id @default(uuid())
+  to        String
+  subject   String
+  body      String   // HTML content
+  type      String   // subscription_confirmed, invoice_generated, payment_failed, cancellation_confirmed
+  createdAt DateTime @default(now())
+}
