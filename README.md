@@ -77,3 +77,6 @@ To run the concurrent request stress test and verify that race conditions cannot
    *   Thread #1 returns **200 OK** (Successful invoice generation).
    *   Threads #2–5 return **409 Conflict** (Lock block) or **200 OK** (Idempotent bypass).
    *   The script queries the database to verify that exactly **1** subscription and **1** invoice are created.
+
+
+
