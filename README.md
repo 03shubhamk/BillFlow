@@ -79,4 +79,3 @@ To run the concurrent request stress test and verify that race conditions cannot
    *   The script queries the database to verify that exactly **1** subscription and **1** invoice are created.
 
 
-
